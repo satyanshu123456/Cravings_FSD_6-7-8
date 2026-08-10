@@ -96,6 +96,9 @@ const OrderSchema = mongoose.Schema(
           enum: ["pending", "completed", "failed"],
           default: "pending",
         },
+        paidAt: {
+          type: Date,
+        },
       },
     },
   },

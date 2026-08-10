@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { MdOutlineRestaurantMenu } from "react-icons/md";
 import { IoCartOutline, IoStar, IoStorefrontOutline } from "react-icons/io5";
 import {
@@ -8,16 +9,23 @@ import {
 
 import { foodTypeDot } from "./helpers";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 
 const MenuItemCard = ({ item, restaurantId, restaurantName }) => {
+  const { isLogin, user, role } = useAuth();
   const { addItem, increaseItem, decreaseItem, getItemQuantity, replaceCart } =
     useCart();
   const [showConflictModal, setShowConflictModal] = useState(false);
 
   const isUnavailable = item.status === "unavailable";
-  const itemCount = getItemQuantity(item._id);
+  const itemCount =
+    isLogin && user && role === "customer" ? getItemQuantity(item._id) : 0;
 
   const handleAdd = () => {
+    if (!isLogin || !user || role !== "customer") {
+      toast.error("Please log as Customer to add items to your cart.");
+      return;
+    }
     if (isUnavailable) return;
     const result = addItem(item, restaurantId, restaurantName);
     if (result === "different_restaurant") {
@@ -189,4 +197,3 @@ const MenuItemCard = ({ item, restaurantId, restaurantName }) => {
 };
 
 export default MenuItemCard;
-
