@@ -17,6 +17,9 @@ import {
   RestaurantUpdateSocialMediaLinks,
   RestaurantUpdateCoverPhoto,
   RestaurantUpdateRestaurantImages,
+  RestaurantGetOrders,
+  RestaurantUpdateOrderStatus,
+  RestaurantGetOverview,
 } from "../controller/restaurant.controller.js";
 import { RestaurantAuthProtect } from "../middleware/auth.middelware.js";
 
@@ -120,5 +123,10 @@ router.put(
   upload.array("restaurantImages", 8),
   RestaurantUpdateRestaurantImages,
 );
+
+// Order Management Routes
+router.get("/orders", RestaurantAuthProtect, RestaurantGetOrders);
+router.patch("/order/:orderId/status", RestaurantAuthProtect, RestaurantUpdateOrderStatus);
+router.get("/overview", RestaurantAuthProtect, RestaurantGetOverview);
 
 export default router;

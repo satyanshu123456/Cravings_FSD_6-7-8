@@ -22,9 +22,12 @@ const OrderSchema = mongoose.Schema(
         {
           itemId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "menuItem",
             required: true,
           },
+          itemName: { type: String },
+          price: { type: Number },
+          foodType: { type: String },
+          image: { type: String },
           quantity: { type: Number, required: true },
         },
       ],

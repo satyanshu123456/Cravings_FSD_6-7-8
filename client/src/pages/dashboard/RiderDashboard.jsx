@@ -37,7 +37,9 @@ const RiderDashboard = () => {
           <RiderSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
         <div className="w-14/17 bg-(--color-base-100) p-4 rounded-lg shadow-md h-full">
-          {activeTab === "overview" && <RiderOverview />}
+          {activeTab === "overview" && (
+            <RiderOverview setActiveTab={setActiveTab} />
+          )}
           {activeTab === "orders" && <RiderOrders />}
           {activeTab === "settings" && <RiderSetting />}
         </div>

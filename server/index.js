@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import cloudinary from "./src/config/cloudinary.config.js";
 import express from "express";
 import connectDB from "./src/config/dbConnection.config.js";
@@ -16,7 +19,25 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+// Trust reverse proxy (Render, Railway, Vercel, Heroku) for secure cookies over HTTPS
+app.set("trust proxy", 1);
+
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "http://localhost:5173";
+const allowedOrigins = [clientUrl, "http://localhost:5173", "http://localhost:5174"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(cleanOrigin) || process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+      return callback(null, cleanOrigin);
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -40,7 +61,6 @@ app.get("/", (req, res) => {
 });
 
 //Default Error Handler
-
 app.use((err, req, res, next) => {
   const ErrMessage = err.message || "Internal Server Error";
   const ErrStausCode = err.statusCode || 500;
@@ -58,7 +78,6 @@ app.listen(port, async () => {
     console.log("Cloudinary Connected :");
     console.log(result);
   } catch (error) {
-    console.log(error.message);
-    process.exit(1);
+    console.log("Cloudinary connection warning:", error.message);
   }
 });

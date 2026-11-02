@@ -7,15 +7,14 @@ import userSeed from "./user.seed.js";
 
 const Seed = async () => {
   try {
-    connectDB();
+    await connectDB();
 
     await adminSeed();
     await userSeed();
-    //Call The Function which we need to Seed.
+    console.log("Database seeded successfully!");
+    process.exit(0);
   } catch (error) {
-    console.log(error.message);
-  }
-  finally{
+    console.log("Seeding error:", error.message);
     process.exit(1);
   }
 };

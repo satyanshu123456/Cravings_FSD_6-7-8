@@ -73,6 +73,10 @@ export const CreateOrder = async (req, res, next) => {
       itemsAmount += Number(menuItem.price) * qty;
       normalizedOrderItems.push({
         itemId: menuItem._id,
+        itemName: menuItem.itemName,
+        price: menuItem.price,
+        foodType: menuItem.foodType,
+        image: menuItem.image?.url || "",
         quantity: qty,
       });
     }
@@ -122,6 +126,59 @@ export const CreateOrder = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error.message);
+    next(error);
+  }
+};
+
+export const GetOrderDetails = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId)
+      .populate("restaurantId", "restaurantName address city contactDetails phone coverImage")
+      .populate("customerId")
+      .populate("riderId");
+
+    if (!order) {
+      const error = new Error("Order not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    res.status(200).json({
+      message: "Order details fetched",
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const RateOrder = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const { rating } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      const error = new Error("Valid rating between 1 and 5 is required");
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      const error = new Error("Order not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    order.rating = rating;
+    await order.save();
+
+    res.status(200).json({
+      message: "Order rated successfully",
+      data: order,
+    });
+  } catch (error) {
     next(error);
   }
 };

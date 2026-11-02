@@ -191,24 +191,58 @@ export const GetAllOrders = async (req, res, next) => {
   try {
     const currentUser = req.user;
 
-    // console.log("Fetching all orders for user:", currentUser._id); // Log the user ID for debugging
-
-    const customer = await Customer.findOne({ customerId: currentUser._id });
+    let customer = await Customer.findOne({ customerId: currentUser._id });
     if (!customer) {
-      const error = new Error("Customer profile not found");
-      error.statusCode = 404;
-      return next(error);
+      customer = await Customer.create({ customerId: currentUser._id });
+      return res.status(200).json({ message: "All Order Fetched", data: [] });
     }
 
-    // console.log("Customer found:", customer); // Log the customer object for debugging
-
-    const allOrder = await Order.find({ customerId: customer._id });
-
-    // console.log("Orders", allOrder);
+    const allOrder = await Order.find({ customerId: customer._id })
+      .populate("restaurantId", "restaurantName address city restaurantImage coverImage contactDetails")
+      .populate("riderId")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ message: "All Order Fetched", data: allOrder });
   } catch (error) {
     console.log(error);
-    next();
+    next(error);
+  }
+};
+
+export const GetCustomerOverview = async (req, res, next) => {
+  try {
+    const currentUser = req.user;
+
+    let customer = await Customer.findOne({ customerId: currentUser._id });
+    if (!customer) {
+      customer = await Customer.create({ customerId: currentUser._id });
+    }
+
+    const orders = await Order.find({ customerId: customer._id })
+      .populate("restaurantId", "restaurantName city")
+      .sort({ createdAt: -1 });
+
+    const totalOrders = orders.length;
+    const totalSpent = orders.reduce((sum, ord) => {
+      if (ord.paymentDetails?.paymentStatus === "completed" || ord.orderStatus === "delivered") {
+        return sum + (ord.billDetails?.finalAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    const recentOrders = orders.slice(0, 5);
+
+    res.status(200).json({
+      message: "Customer overview fetched successfully",
+      data: {
+        totalOrders,
+        totalSpent: Math.round(totalSpent * 100) / 100,
+        addressCount: customer.addressBook?.length || 0,
+        recentOrders,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
   }
 };

@@ -15,31 +15,42 @@ import Test from "./pages/Test";
 import OrderNow from "./pages/OrderNow";
 import RestaurantDetailsPage from "./pages/RestaurantDetailsPage";
 import Cart from "./components/Cart";
+import About from "./pages/About";
+import NotFound from "./pages/NotFound";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const App = () => {
   return (
     <>
       <Toaster />
       <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/contact" element={<Contact />} />
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/register/:userType" element={<Register />} />
-        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-        <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
-        <Route path="/rider-dashboard" element={<RiderDashboard />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/test" element={<Test />} />
-        <Route path="/order-now" element={<OrderNow />} />
-        <Route
-          path="/restaurant-details/:restaurantId"
-          element={<RestaurantDetailsPage />}
-        />
-        <Route path="/cart" element={<Cart />} />
-      </Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/register/:userType" element={<Register />} />
+          <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+          <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
+          <Route path="/rider-dashboard" element={<RiderDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/test" element={<Test />} />
+          <Route path="/order-now" element={<OrderNow />} />
+          <Route
+            path="/restaurant-details/:restaurantId"
+            element={<RestaurantDetailsPage />}
+          />
+          <Route
+            path="/restaurant-menu/:restaurantId"
+            element={<RestaurantDetailsPage />}
+          />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
       <Footer />
     </>
   );

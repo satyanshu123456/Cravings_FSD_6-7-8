@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import logoLight from "../assets/transparentLogoLight.png";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { FaPowerOff } from "react-icons/fa";
-import { IoCartOutline } from "react-icons/io5";
+import { IoCartOutline, IoMenu, IoClose } from "react-icons/io5";
 import toast from "react-hot-toast";
 import api from "../config/ApiConfig";
 
@@ -12,10 +12,9 @@ const Navbar = () => {
   const { user, isLogin, role, setUser, setIsLogin, setRole } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavigate = () => {
-    //console.log("Handle Navigate", role);
-
     if (role === "restaurant") {
       navigate("/restaurant-dashboard");
     } else if (role === "rider") {
@@ -30,7 +29,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       const res = await api.get("/auth/logout");
-      toast.success(res.data.message);
+      toast.success(res.data.message || "Logged out successfully");
 
       sessionStorage.removeItem("cravingUser");
       setUser(null);
@@ -40,78 +39,174 @@ const Navbar = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Unknown error occurred during registration. Please try again.",
+          "Unknown error occurred during logout. Please try again.",
       );
     }
   };
 
+  const navLinkClass = ({ isActive }) =>
+    `text-sm font-medium transition-colors px-3 py-1 rounded-md ${
+      isActive
+        ? "bg-white/20 text-white font-bold"
+        : "text-white/80 hover:text-white hover:bg-white/10"
+    }`;
+
   return (
     <>
-      <div className="sticky top-0 z-99 flex items-center justify-between px-12 py-1 bg-(--color-primary) text-white w-full h-16 shadow-md">
-        <div className="h-full">
-          <Link to="/">
-            <img src={logoLight} alt="Logo" className="w-fit h-full" />{" "}
+      <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-10 bg-(--color-primary) text-white w-full h-16 shadow-md">
+        {/* Logo */}
+        <div className="h-full py-2 flex items-center gap-2">
+          <Link to="/" className="h-full flex items-center">
+            <img src={logoLight} alt="Cravings Logo" className="h-10 w-auto object-contain" />
           </Link>
         </div>
 
-        {isLogin ? (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 relative">
+        {/* Center Nav Links (Desktop) */}
+        <div className="hidden md:flex items-center gap-1">
+          <NavLink to="/" className={navLinkClass}>
+            Home
+          </NavLink>
+          <NavLink to="/order-now" className={navLinkClass}>
+            Order Now
+          </NavLink>
+          <NavLink to="/about" className={navLinkClass}>
+            About Us
+          </NavLink>
+          <NavLink to="/contact" className={navLinkClass}>
+            Contact
+          </NavLink>
+        </div>
+
+        {/* Right Action Icons & Auth */}
+        <div className="flex items-center gap-3">
+          {/* Cart Icon (accessible to all or customer) */}
+          <div className="relative flex items-center">
+            <button
+              onClick={() => navigate("/cart")}
+              className="p-1 hover:scale-110 transition-transform duration-200"
+              title="Go to Cart"
+            >
+              <IoCartOutline className="text-white text-2xl" />
+            </button>
+            {totalItems > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-(--color-primary)">
+                {totalItems}
+              </span>
+            )}
+          </div>
+
+          {isLogin ? (
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => navigate("/cart")}
-                className="hover:scale-110 transition-transform duration-200"
-                title="Go to Cart"
+                className="flex gap-2 items-center text-white border border-transparent hover:border-white/30 px-2.5 py-1 rounded-lg transition"
+                title="Go to Dashboard"
+                onClick={handleNavigate}
               >
-                <IoCartOutline className="text-(--color-primary-content) text-3xl" />
+                <img
+                  src={
+                    user?.photo?.url ||
+                    `https://placehold.co/100x100?text=${user?.fullName?.[0] || "U"}`
+                  }
+                  alt={user?.fullName || "User"}
+                  className="w-9 h-9 rounded-full object-cover object-top border border-white/40"
+                />
+                <div className="hidden sm:flex flex-col items-start leading-tight">
+                  <span className="text-xs font-bold truncate max-w-[120px]">
+                    {user?.fullName}
+                  </span>
+                  <span className="text-[10px] text-white/80 uppercase tracking-wider font-semibold">
+                    {role}
+                  </span>
+                </div>
               </button>
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-(--color-error) text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
+
+              <button
+                onClick={handleLogout}
+                className="text-white/80 hover:text-white hover:bg-red-600 p-2 rounded-lg transition"
+                title="Logout"
+              >
+                <FaPowerOff size={15} />
+              </button>
             </div>
-            <button
-              className="flex gap-2 items-center text-(--color-primary-content) border border-transparent hover:border-(--color-primary-content)  px-3 py-1 rounded"
-              title="Go to Dashboard"
-              onClick={handleNavigate}
-            >
-              <img
-                src={user?.photo.url}
-                alt={user?.fullName}
-                className="w-12 h-12 rounded-full object-cover object-top"
-              />
-              <div className="flex flex-col items-start">
-                <span className="text-base">{user?.fullName}</span>
-                <span className="text-xs text-(--color-primary-content)/80 uppercase">
-                  {role}
-                </span>
-              </div>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-(--color-primary-content) border border-transparent hover:border-(--color-primary-content) hover:bg-(--color-error) px-3 py-3 rounded"
-              title="Logout"
-            >
-              <FaPowerOff />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Link
-              to="/login"
-              className="text-(--color-primary-content) border border-transparent hover:border-(--color-primary-content) px-3 py-1 rounded"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register/customer"
-              className="bg-(--color-primary-content) text-(--color-primary) hover:bg-(--color-primary) hover:text-(--color-primary-content) border px-3 py-1 rounded"
-            >
-              Register
-            </Link>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                to="/login"
+                className="text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-sm font-semibold transition"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register/customer"
+                className="bg-white text-(--color-primary) hover:bg-white/90 px-3.5 py-1.5 rounded-lg text-sm font-bold shadow-xs transition"
+              >
+                Register
+              </Link>
+            </div>
+          )}
+
+          {/* Mobile hamburger menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-1.5 text-white text-2xl"
+          >
+            {mobileMenuOpen ? <IoClose /> : <IoMenu />}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-(--color-primary) text-white px-4 py-3 space-y-2 border-t border-white/10 shadow-lg">
+          <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-sm font-medium hover:text-white/80"
+          >
+            Home
+          </Link>
+          <Link
+            to="/order-now"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-sm font-medium hover:text-white/80"
+          >
+            Order Now
+          </Link>
+          <Link
+            to="/about"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-sm font-medium hover:text-white/80"
+          >
+            About Us
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-sm font-medium hover:text-white/80"
+          >
+            Contact
+          </Link>
+
+          {!isLogin && (
+            <div className="pt-2 border-t border-white/20 flex gap-2">
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2 bg-white/10 rounded-lg text-xs font-bold"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register/customer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2 bg-white text-(--color-primary) rounded-lg text-xs font-bold"
+              >
+                Register
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 };

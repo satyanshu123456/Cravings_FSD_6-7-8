@@ -37,7 +37,9 @@ const CustomerDashboard = () => {
           <CustomerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
         <div className="w-14/17 bg-(--color-base-100) p-4 rounded-lg shadow-md h-full">
-          {activeTab === "overview" && <CustomerOverview />}
+          {activeTab === "overview" && (
+            <CustomerOverview setActiveTab={setActiveTab} />
+          )}
           {activeTab === "orders" && <CustomerOrders />}
           {activeTab === "settings" && <CustomerSetting />}
         </div>

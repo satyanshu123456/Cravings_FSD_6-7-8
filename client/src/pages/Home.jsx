@@ -34,27 +34,37 @@ const Home = () => {
     const loadRestaurants = async () => {
       try {
         setLoading(true);
-        const response = await api.get("/public/restau");
+        const response = await api.get("/public/restaurants");
 
         // Map API response to match component's expected format
-        const formattedRestaurants = response.data.data.map((restaurant) => ({
-          id: restaurant._id,
-          name: restaurant.restaurantName,
-          description:
-            restaurant.description ||
-            `${restaurant.cuisineType} cuisine in ${restaurant.city}`,
-          rating: restaurant.rating || 0,
-          numReviews: restaurant.numReviews || 0,
-          image:
-            restaurant.images?.[0]?.URL ||
-            "https://placehold.co/300x200?text=Restaurant",
-          cuisines: restaurant.cuisineType,
-          geolocation: restaurant.geolocation,
-          city: restaurant.city,
-          address: restaurant.address,
-          openingHours: restaurant.openingHours,
-          closingHours: restaurant.closingHours,
-        }));
+        const formattedRestaurants = (response.data.data || []).map((restaurant) => {
+          const cuisinesList = Array.isArray(restaurant.cuisineTypes)
+            ? restaurant.cuisineTypes
+            : Array.isArray(restaurant.cuisineType)
+            ? restaurant.cuisineType
+            : [];
+          return {
+            id: restaurant._id,
+            name: restaurant.restaurantName,
+            description:
+              restaurant.description ||
+              `${cuisinesList.join(", ") || "Multi-cuisine"} in ${restaurant.city || "your city"}`,
+            rating: restaurant.averageRating || restaurant.rating || 4.2,
+            numReviews: restaurant.numReviews || 24,
+            image:
+              restaurant.coverImage?.url ||
+              restaurant.restaurantImage?.[0]?.url ||
+              "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=60",
+            cuisines: cuisinesList,
+            restaurantType: restaurant.restaurantType || "both",
+            geolocation: restaurant.geoLocation,
+            city: restaurant.city || "",
+            address: restaurant.address || "",
+            openingHours: restaurant.servingHours?.openingTime || "09:00",
+            closingHours: restaurant.servingHours?.closingTime || "22:00",
+            isOpen: restaurant.isOpen,
+          };
+        });
 
         setRestaurants(formattedRestaurants);
         setFilteredRestaurants(formattedRestaurants);
@@ -87,19 +97,38 @@ const Home = () => {
       );
     }
 
-    // Filter by category (map to cuisine types)
+    // Filter by category
     if (selectedCategory !== "all") {
-      const categoryMap = {
-        veg: "vegetarian",
-        nonveg: "non-vegetarian",
-        dessert: "desserts",
-        others: "other",
-      };
-
-      const selectedCuisine = categoryMap[selectedCategory];
-      filtered = filtered.filter((r) =>
-        r.cuisines.some((c) => c.toLowerCase().includes(selectedCuisine)),
-      );
+      filtered = filtered.filter((r) => {
+        if (selectedCategory === "veg") {
+          return (
+            r.restaurantType === "veg" ||
+            r.restaurantType === "vegan" ||
+            r.restaurantType === "jain" ||
+            r.cuisines?.some((c) => c.toLowerCase().includes("veg"))
+          );
+        }
+        if (selectedCategory === "nonveg") {
+          return (
+            r.restaurantType === "non-veg" ||
+            r.restaurantType === "both" ||
+            r.cuisines?.some((c) => c.toLowerCase().includes("non"))
+          );
+        }
+        if (selectedCategory === "dessert") {
+          return r.cuisines?.some((c) => {
+            const lower = c.toLowerCase();
+            return (
+              lower.includes("dessert") ||
+              lower.includes("sweet") ||
+              lower.includes("bakery") ||
+              lower.includes("cake") ||
+              lower.includes("ice cream")
+            );
+          });
+        }
+        return true;
+      });
     }
 
     setFilteredRestaurants(filtered);
@@ -192,7 +221,7 @@ const Home = () => {
               {filteredRestaurants.map((restaurant) => (
                 <div
                   key={restaurant.id}
-                  onClick={() => navigate(`/restaurant-menu/${restaurant.id}`)}
+                  onClick={() => navigate(`/restaurant-details/${restaurant.id}`)}
                   className="flex flex-col bg-(--color-base-100) rounded-xl overflow-hidden shadow-md hover:shadow-xl transition cursor-pointer transform hover:scale-105"
                 >
                   {/* Restaurant Image */}
@@ -219,12 +248,17 @@ const Home = () => {
 
                     {/* Cuisines */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {restaurant.cuisines.split(",").map((cuisine, idx) => (
+                      {(Array.isArray(restaurant.cuisines)
+                        ? restaurant.cuisines
+                        : typeof restaurant.cuisines === "string"
+                        ? restaurant.cuisines.split(",")
+                        : []
+                      ).map((cuisine, idx) => (
                         <span
                           key={idx}
                           className="text-xs bg-(--color-base-300) text-(--color-base-content) px-2 py-1 rounded capitalize"
                         >
-                          {cuisine}
+                          {typeof cuisine === "string" ? cuisine.trim() : cuisine}
                         </span>
                       ))}
                     </div>
@@ -234,7 +268,7 @@ const Home = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/restaurant-menu/${restaurant.id}`);
+                          navigate(`/restaurant-details/${restaurant.id}`);
                         }}
                         className="w-full bg-(--color-primary) text-(--color-primary-content) px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition"
                       >

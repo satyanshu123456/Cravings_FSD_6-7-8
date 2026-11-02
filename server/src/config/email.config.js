@@ -4,11 +4,12 @@ import nodemailer from "nodemailer";
 
 const sendEmail = async (to, subject, message) => {
   try {
-    //   console.log("Started Sending Email");
-
-    //    console.log(process.env.GMAIL_USERNAME);
-
-    //    console.log(process.env.GMAIL_PASSCODE);
+    if (!process.env.GMAIL_USERNAME || !process.env.GMAIL_PASSCODE) {
+      console.log(
+        `[Email Service (Dev Mock)] To: ${to} | Subject: ${subject}\nCredentials GMAIL_USERNAME/GMAIL_PASSCODE not provided in .env - Simulated email delivery successfully.`,
+      );
+      return { messageId: "simulated-dev-id" };
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",

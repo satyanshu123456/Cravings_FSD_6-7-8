@@ -6,6 +6,7 @@ import {
   deleteSingleImage,
 } from "../utils/image.service.js";
 import Menu from "../models/menu.model.js";
+import Order from "../models/order.model.js";
 
 export const RestaurantGetData = async (req, res, next) => {
   try {
@@ -415,13 +416,14 @@ export const RestaurantMenuItems = async (req, res, next) => {
       restaurantId: existingRestaurant._id,
     });
 
+    // If no menu document exists yet for this restaurant, return an empty list
+    // instead of a 404 so the frontend can render an empty state gracefully.
     if (!existingMenuItem) {
-      const error = new Error("Menu Items Not Found");
-      error.statusCode = 404;
-      return next(error);
+      return res.status(200).json({
+        message: "No menu items found",
+        data: [],
+      });
     }
-
-    // console.log("Existing Menu Items:", existingMenuItem.menuItems);
 
     const activeMenuItems = existingMenuItem.menuItems.filter(
       (item) => !item.isDeleted,
@@ -813,6 +815,146 @@ export const RestaurantUpdateRestaurantImages = async (req, res, next) => {
     return res.status(200).json({
       message: "Restaurant images updated successfully",
       data: existingRestaurant,
+    });
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
+// ─── Orders & Overview Controllers ──────────────────────────────────────────
+
+export const RestaurantGetOrders = async (req, res, next) => {
+  try {
+    const currentUser = req.user;
+    const restaurant = await Restaurant.findOne({ managerId: currentUser._id });
+    if (!restaurant) {
+      return res.status(200).json({ message: "No restaurant found", data: [] });
+    }
+
+    const orders = await Order.find({ restaurantId: restaurant._id })
+      .populate({
+        path: "customerId",
+        populate: { path: "customerId", select: "fullName email phone photo" },
+      })
+      .populate("riderId")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      message: "Restaurant orders fetched successfully",
+      data: orders,
+    });
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
+export const RestaurantUpdateOrderStatus = async (req, res, next) => {
+  try {
+    const currentUser = req.user;
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = [
+      "accepted",
+      "preparing",
+      "ready",
+      "rejected",
+      "cancelled",
+    ];
+
+    if (!validStatuses.includes(status)) {
+      const error = new Error(`Invalid status transition to: ${status}`);
+      error.statusCode = 400;
+      return next(error);
+    }
+
+    const restaurant = await Restaurant.findOne({ managerId: currentUser._id });
+    if (!restaurant) {
+      const error = new Error("Restaurant not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    const order = await Order.findOne({
+      _id: orderId,
+      restaurantId: restaurant._id,
+    });
+
+    if (!order) {
+      const error = new Error("Order not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    order.orderStatus = status;
+    await order.save();
+
+    return res.status(200).json({
+      message: `Order status updated to ${status}`,
+      data: order,
+    });
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
+export const RestaurantGetOverview = async (req, res, next) => {
+  try {
+    const currentUser = req.user;
+    const restaurant = await Restaurant.findOne({ managerId: currentUser._id });
+    if (!restaurant) {
+      return res.status(200).json({
+        message: "No restaurant found",
+        data: {
+          totalOrders: 0,
+          totalRevenue: 0,
+          pendingOrders: 0,
+          activeOrders: 0,
+          deliveredOrders: 0,
+          recentOrders: [],
+        },
+      });
+    }
+
+    const orders = await Order.find({ restaurantId: restaurant._id })
+      .populate({
+        path: "customerId",
+        populate: { path: "customerId", select: "fullName email phone" },
+      })
+      .sort({ createdAt: -1 });
+
+    const totalOrders = orders.length;
+    let totalRevenue = 0;
+    let pendingOrders = 0;
+    let activeOrders = 0;
+    let deliveredOrders = 0;
+
+    for (const ord of orders) {
+      if (
+        ord.paymentDetails?.paymentStatus === "completed" ||
+        ord.orderStatus === "delivered"
+      ) {
+        totalRevenue += ord.billDetails?.finalAmount || 0;
+      }
+      if (ord.orderStatus === "pending") pendingOrders++;
+      if (["accepted", "preparing", "ready"].includes(ord.orderStatus))
+        activeOrders++;
+      if (ord.orderStatus === "delivered") deliveredOrders++;
+    }
+
+    return res.status(200).json({
+      message: "Overview fetched successfully",
+      data: {
+        totalOrders,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        pendingOrders,
+        activeOrders,
+        deliveredOrders,
+        recentOrders: orders.slice(0, 5),
+      },
     });
   } catch (error) {
     console.log(error.message);

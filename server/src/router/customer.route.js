@@ -5,7 +5,8 @@ import {
   AddAddress,
   UpdateAddress,
   DeleteAddress,
-  GetAllOrders
+  GetAllOrders,
+  GetCustomerOverview,
 } from "../controller/customer.controller.js";
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.put("/address-book/:addressId", AuthProtect, UpdateAddress);
 router.delete("/address-book/:addressId", AuthProtect, DeleteAddress);
 
 router.get("/all-orders", AuthProtect, GetAllOrders);
+router.get("/overview", AuthProtect, GetCustomerOverview);
 
 export default router;
