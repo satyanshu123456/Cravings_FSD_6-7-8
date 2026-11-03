@@ -22,20 +22,33 @@ const app = express();
 // Trust reverse proxy (Render, Railway, Vercel, Heroku) for secure cookies over HTTPS
 app.set("trust proxy", 1);
 
-const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "http://localhost:5173";
-const allowedOrigins = [clientUrl, "http://localhost:5173", "http://localhost:5174"];
+const allowedOrigins = [
+  "https://cravings-fsd-6-7-8.vercel.app",
+  process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : null,
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like Postman, mobile apps, curl)
       if (!origin) return callback(null, true);
+
       const cleanOrigin = origin.replace(/\/$/, "");
-      if (allowedOrigins.includes(cleanOrigin) || process.env.NODE_ENV !== "production") {
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith(".vercel.app") ||
+        process.env.NODE_ENV !== "production"
+      ) {
         return callback(null, true);
       }
-      return callback(null, cleanOrigin);
+      return callback(null, true);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   }),
 );
 app.use(express.json());
